@@ -84,8 +84,12 @@ def draw_board():
                     screen.blit(red_mine_tile_image, coords)
                 case "W":
                     screen.blit(wrong_flag_tile_image, coords)
-            if game.visible_board[a][b][1] == "F": # Draw the flag icon
+                case "!":
+                    screen.blit(win_tile_image, coords)
+            if game.visible_board[a][b] == "XF": # Draw the flag icon
                 screen.blit(flag_tile_image, coords)
+            elif game.visible_board[a][b] == "!F":
+                screen.blit(win_flag_tile_image, coords)
 
     pygame.display.flip()
 
@@ -197,28 +201,40 @@ while menu_on:
         # Button presses
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             coords = pygame.mouse.get_pos()
+            tile_count = game_height * game_width
+
             # Width buttons
             if w_double_up_rect.collidepoint(coords) and game_width <= 20: # Width up by 10
                 game_width += 10
             elif w_up_rect.collidepoint(coords) and game_width < 30: # Width up by 1
                 game_width += 1
-            elif w_down_rect.collidepoint(coords) and game_width > 1: # Widith down by 1
+            elif w_down_rect.collidepoint(coords) and game_width > 9: # Widith down by 1
                 game_width -= 1
-            elif w_double_down_rect.collidepoint(coords) and game_width > 10: # Width down by 10
+                if game_mines > game_width * game_height - 9 or game_mines >= game_width * game_height / 2:
+                    game_mines = min(game_width * game_height - 9, int(game_width * game_height / 2 - 1))
+            elif w_double_down_rect.collidepoint(coords) and game_width > 19: # Width down by 10
                 game_width -= 10
+                if game_mines > game_width * game_height - 9 or game_mines >= game_width * game_height / 2:
+                    game_mines = min(game_width * game_height - 9, int(game_width * game_height / 2 - 1))
+
             # Height buttons
             elif h_double_up_rect.collidepoint(coords) and game_height <= 20: # height up by 10
                 game_height += 10
             elif h_up_rect.collidepoint(coords) and game_height < 30: # height up by 1
                 game_height += 1
-            elif h_down_rect.collidepoint(coords) and game_height > 1: # height down by 1
+            elif h_down_rect.collidepoint(coords) and game_height > 9: # height down by 1
                 game_height -= 1
-            elif h_double_down_rect.collidepoint(coords) and game_height > 10: # height down by 10
+                if game_mines > game_width * game_height - 9 or game_mines >= game_width * game_height / 2:
+                    game_mines = min(game_width * game_height - 9, int(game_width * game_height / 2 - 1))
+            elif h_double_down_rect.collidepoint(coords) and game_height > 19: # height down by 10
                 game_height -= 10
+                if game_mines > game_width * game_height - 9 or game_mines >= game_width * game_height / 2:
+                    game_mines = min(game_width * game_height - 9, int(game_width * game_height / 2 - 1))
+
             # Mine buttons
-            elif b_double_up_rect.collidepoint(coords) and game_mines <= 190: # mines up by 10
+            elif b_double_up_rect.collidepoint(coords) and game_mines <= 190 and game_mines + 10 < tile_count: # mines up by 10
                 game_mines += 10
-            elif b_up_rect.collidepoint(coords) and game_mines < 200: # mines up by 1
+            elif b_up_rect.collidepoint(coords) and game_mines < 200 and game_mines + 1 < tile_count: # mines up by 1
                 game_mines += 1
             elif b_down_rect.collidepoint(coords) and game_mines > 1: # mines down by 1
                 game_mines -= 1
@@ -353,6 +369,8 @@ mine_tile_image = pygame.transform.scale(pygame.image.load("data/mine_tile.png")
 red_mine_tile_image = pygame.transform.scale(pygame.image.load("data/red_mine_tile.png"), (tile_size, tile_size))
 flag_tile_image = pygame.transform.scale(pygame.image.load("data/flag_tile.png"), (tile_size, tile_size))
 wrong_flag_tile_image = pygame.transform.scale(pygame.image.load("data/wrong_flag_tile.png"), (tile_size, tile_size))
+win_tile_image = pygame.transform.scale(pygame.image.load("data/win_tile.png"), (tile_size, tile_size))
+win_flag_tile_image = pygame.transform.scale(pygame.image.load("data/win_flag_tile.png"), (tile_size, tile_size))
 
 # Numbers
 one_tile_image = pygame.transform.scale(pygame.image.load("data/one_tile.png"), (tile_size, tile_size))
@@ -367,15 +385,13 @@ eight_tile_image = pygame.transform.scale(pygame.image.load("data/eight_tile.png
 
 
 ### GAME LOOP
-running = True
-while running:
+while True:
     
     alive = True
     first_turn = True
     draw_board()
-    while alive:
-        if game.is_won():
-            pass
+
+    while alive: # Each game loop
 
         # Event handler
         for event in pygame.event.get():
@@ -384,8 +400,6 @@ while running:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-                running = False
-                alive = False
 
             # Left click or space
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 or event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
@@ -444,7 +458,7 @@ while running:
 
                             draw_board()
                             pygame.display.flip()
-                        game.make_clean_visible_board
+                        game.make_clean_visible_board()
             
             # Right click (or l shift)
             if (event.type == pygame.MOUSEBUTTONDOWN and event.button == 3) or (event.type == pygame.KEYDOWN and event.key == pygame.K_LSHIFT):
@@ -513,10 +527,21 @@ while running:
                                     draw_board()
                                     pygame.display.flip()
                                 game.make_clean_visible_board
+        
+        if game.is_won():
+            for a in range(game.height):
+                for b in range(game.width):
+                    tile = game.visible_board[a][b]
+                    if tile == "XO":
+                        game.visible_board[a][b] = "!O"
+                    elif tile == "XF":
+                        game.visible_board[a][b] = "!F"
+            draw_board()
+            pygame.display.flip()
+            alive = False
+
     dead = True
     while dead:
-        if running == False:
-            dead == False
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 dead = False
